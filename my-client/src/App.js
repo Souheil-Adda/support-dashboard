@@ -1,10 +1,36 @@
 import React, { useState, useEffect } from 'react';
+import { io } from 'socket.io-client';
 
 function App() {
   const [tickets, setTickets] = useState([]);
   const [form, setForm] = useState({ name: '', issue: '', priority: 'Low' });
-  const [error, setError] = useState(null); // New state for errors
-  const [loading, setLoading] = useState(false); // Loading state
+  const [error, setError] = useState(null);
+  const [loading, setLoading] = useState(false);
+
+  // Initialize Socket.io connection
+  useEffect(() => {
+    const socket = io('http://localhost:5000', {
+      reconnectionAttempts: 5,
+      reconnectionDelay: 1000,
+    });
+
+    socket.on('connect', () => {
+      console.log('Connected to WebSocket server');
+    });
+
+    socket.on('connect_error', (err) => {
+      console.error('WebSocket connection error:', err);
+      setError('Failed to connect to live updates');
+    });
+
+    socket.on('newTicket', (ticket) => {
+      setTickets(prev => [...prev, ticket]);
+    });
+
+    return () => {
+      socket.disconnect();
+    };
+  }, []);
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -22,9 +48,8 @@ function App() {
       });
       if (!res.ok) throw new Error('Failed to submit ticket');
       setForm({ name: '', issue: '', priority: 'Low' });
-      await fetchTickets();
     } catch (err) {
-      setError(err.message); // Show error to user
+      setError(err.message);
     } finally {
       setLoading(false);
     }
@@ -71,7 +96,7 @@ function App() {
       ) : (
         <ul>
           {tickets.map((t) => (
-            <li key={t.id}>
+            <li key={t._id || t.id}>
               <strong>{t.name}</strong>: {t.issue} ({t.priority})
             </li>
           ))}
