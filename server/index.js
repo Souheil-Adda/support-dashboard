@@ -1,25 +1,44 @@
-// Add this before your app.listen
-app.post('/tickets', async (req, res) => {
-  const { name, email, message } = req.body;
+// backend/server.js
 
-  if (!name || !email || !message) {
-    return res.status(400).json({ error: 'All fields are required' });
-  }
+const express = require('express');
+const cors = require('cors');
 
-  try {
-    const result = await pool.query(
-      'INSERT INTO tickets (name, email, message) VALUES ($1, $2, $3) RETURNING *',
-      [name, email, message]
-    );
+const app = express();
+const PORT = 4000;
 
-    const newTicket = result.rows[0];
+app.use(cors());
+app.use(express.json());
 
-    // Emit to all connected clients
-    io.emit('new-ticket', newTicket);
+let tickets = [];
 
-    res.status(201).json(newTicket);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Database error' });
-  }
+app.post('/api/tickets', (req, res) => {
+    console.log("Incoming ticket:", req.body); // 👈 log request body
+
+    const { name, issue, priority } = req.body;
+
+    if (!name || !issue || !priority) {
+        console.log("Missing field(s)");
+        return res.status(400).json({ error: "All fields required" });
+    }
+
+    const ticket = {
+        id: Date.now(),
+        name,
+        issue,
+        priority,
+        createdAt: new Date().toISOString(),
+    };
+
+    tickets.push(ticket);
+    res.status(201).json(ticket); // 👈 respond with JSON
+});
+
+
+// Handle GET request
+app.get('/api/tickets', (req, res) => {
+    res.json(tickets);
+});
+
+app.listen(PORT, () => {
+    console.log(`Backend running on http://localhost:${PORT}`);
 });
