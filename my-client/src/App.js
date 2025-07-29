@@ -6,24 +6,32 @@ function App() {
   const [form, setForm] = useState({ name: '', issue: '', priority: 'Low' });
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [socketStatus, setSocketStatus] = useState('disconnected');
 
   // Initialize Socket.io connection
   useEffect(() => {
+    console.log('Attempting to connect to WebSocket...');
     const socket = io('http://localhost:5000', {
       reconnectionAttempts: 5,
       reconnectionDelay: 1000,
+      transports: ['websocket'], // Force WebSocket only
+      withCredentials: true
     });
 
     socket.on('connect', () => {
       console.log('Connected to WebSocket server');
+      setSocketStatus('connected');
+      setError(null);
     });
 
     socket.on('connect_error', (err) => {
       console.error('WebSocket connection error:', err);
-      setError('Failed to connect to live updates');
+      setSocketStatus('disconnected');
+      setError('Realtime updates unavailable - attempting to reconnect...');
     });
 
     socket.on('newTicket', (ticket) => {
+      console.log('📥 Received new ticket:', ticket);
       setTickets(prev => [...prev, ticket]);
     });
 

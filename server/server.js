@@ -10,18 +10,50 @@ const PORT = 5000;
 // Create HTTP server
 const httpServer = createServer(app);
 
-// Configure Socket.io with CORS
+
+
+// Configure CORS for both Express and Socket.io
+const allowedOrigins = ['http://localhost:3000', 'http://127.0.0.1:3000'];
+app.use(cors({
+    origin: allowedOrigins,
+    credentials: true
+}));
+
+
+
+/// Configure Socket.io
 const io = new Server(httpServer, {
     cors: {
-        origin: "http://localhost:3000", // Change to your React app's port
-        methods: ["GET", "POST"]
+        origin: allowedOrigins,
+        methods: ["GET", "POST"],
+        credentials: true
+    },
+    connectionStateRecovery: {
+        maxDisconnectionDuration: 2 * 60 * 1000, // 2 minutes
+        skipMiddlewares: true
     }
 });
+
 
 // MongoDB Connection
 mongoose.connect('mongodb+srv://souhailadda:lGm8ajt4Vyrf0sry@souheil33.vyhr2ru.mongodb.net/support-tickets?retryWrites=true&w=majority&appName=Souheil33')
     .then(() => console.log('Connected to MongoDB'))
-    .catch(err => console.error('MongoDB connection error:', err));
+    .catch(err => console.error('MongoDB connection error:', err)
+    );
+
+
+// WebSocket connection handler
+io.on('connection', (socket) => {
+    console.log(`🔌 New client connected: ${socket.id}`);
+
+    socket.on('disconnect', (reason) => {
+        console.log(`❌ Client disconnected (${socket.id}): ${reason}`);
+    });
+
+    socket.on('error', (err) => {
+        console.error(`⚠️ Socket error (${socket.id}):`, err);
+    });
+});
 
 // Ticket Schema and Model
 const ticketSchema = new mongoose.Schema({
@@ -65,11 +97,12 @@ app.post('/api/tickets', async (req, res) => {
         });
         await ticket.save();
 
-        // Emit the new ticket to all connected clients
+        console.log('📤 Emitting new ticket to all clients');
         io.emit('newTicket', ticket);
 
         res.status(201).json(ticket);
     } catch (err) {
+        console.error('❌ Failed to create ticket:', err);
         res.status(500).json({ error: 'Failed to create ticket' });
     }
 });
