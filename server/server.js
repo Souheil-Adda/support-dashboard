@@ -116,7 +116,7 @@ app.post('/api/tickets', async (req, res) => {
         res.status(201).json(ticket);
 
     } catch (err) {
-        console.error('Failed:', err);
+        console.error('Failed:', err);  // <— you already have this, but let's confirm it's working
         res.status(500).json({
             error: 'Ticket creation failed',
             details: err.message

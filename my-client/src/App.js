@@ -1,12 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import { io } from 'socket.io-client';
+import useTicketStore from './store';
 
 function App() {
-  const [tickets, setTickets] = useState([]);
   const [form, setForm] = useState({ name: '', issue: '', priority: 'Low' });
-  const [error, setError] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [socketStatus, setSocketStatus] = useState('disconnected');
+  const {
+    tickets,
+    loading,
+    error,
+    socketStatus,
+    setTickets,
+    addTicket,
+    setLoading,
+    setError,
+    setSocketStatus
+  } = useTicketStore();
 
   // Initialize Socket.io connection
   useEffect(() => {
@@ -14,7 +22,7 @@ function App() {
     const socket = io('http://localhost:5000', {
       reconnectionAttempts: 5,
       reconnectionDelay: 1000,
-      transports: ['websocket'], // Force WebSocket only
+      transports: ['websocket'],
       withCredentials: true
     });
 
@@ -32,13 +40,13 @@ function App() {
 
     socket.on('newTicket', (ticket) => {
       console.log('📥 Received new ticket:', ticket);
-      setTickets(prev => [...prev, ticket]);
+      addTicket(ticket);
     });
 
     return () => {
       socket.disconnect();
     };
-  }, []);
+  }, [addTicket, setError, setSocketStatus]); // ✅ add these dependencies
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -76,10 +84,11 @@ function App() {
       setLoading(false);
     }
   };
-
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     fetchTickets();
   }, []);
+
 
   return (
     <div style={{ padding: '2rem' }}>
