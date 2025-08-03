@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { io } from 'socket.io-client';
 import useTicketStore from './store';
+import CategoryChart from './CategoryChart';
+
 
 function App() {
   const [form, setForm] = useState({ name: '', issue: '', priority: 'Low' });
@@ -8,7 +10,6 @@ function App() {
     tickets,
     loading,
     error,
-    socketStatus,
     setTickets,
     addTicket,
     setLoading,
@@ -119,6 +120,7 @@ function App() {
           ))}
         </ul>
       )}
+      <CategoryChart />
     </div>
   );
 }
