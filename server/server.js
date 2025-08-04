@@ -62,7 +62,9 @@ const ticketSchema = new mongoose.Schema({
     issue: String,
     priority: String,
     category: String,     // Add this
-    confidence: Number,   // Add this
+    confidence: Number,
+    sentimentLabel: String,
+    sentimentScore: Number,
     createdAt: {          // Add this
         type: Date,
         default: Date.now
@@ -105,9 +107,11 @@ app.post('/api/tickets', async (req, res) => {
             name: req.body.name,
             issue: req.body.issue,
             priority: req.body.priority,
-            category: data.category,          // From NLP
-            confidence: data.confidence,      // From NLP
-            createdAt: new Date()             // Explicit timestamp
+            category: data.category,
+            confidence: data.confidence,
+            sentimentLabel: data.sentiment?.label,
+            sentimentScore: data.sentiment?.score,
+            createdAt: new Date()
         });
 
         // 3. Save and respond
