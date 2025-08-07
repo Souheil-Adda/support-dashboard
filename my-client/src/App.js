@@ -14,7 +14,8 @@ function App() {
     addTicket,
     setLoading,
     setError,
-    setSocketStatus
+    setSocketStatus,
+    updateTicket
   } = useTicketStore();
 
   // Initialize Socket.io connection
@@ -38,6 +39,11 @@ function App() {
       setSocketStatus('disconnected');
       setError('Realtime updates unavailable - attempting to reconnect...');
     });
+    socket.on('ticketUpdated', (ticket) => {
+      console.log('🔄 Ticket updated:', ticket);
+      updateTicket(ticket);
+    });
+
 
     socket.on('newTicket', (ticket) => {
       console.log('📥 Received new ticket:', ticket);
@@ -52,6 +58,23 @@ function App() {
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
+
+  const handleUpdate = async (id, update) => {
+    try {
+      const res = await fetch(`http://localhost:5000/api/tickets/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(update),
+      });
+
+      if (!res.ok) throw new Error('Failed to update ticket');
+      const updated = await res.json();
+      // Update local state if needed here
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -112,13 +135,73 @@ function App() {
       {loading ? (
         <p>Loading tickets...</p>
       ) : (
-        <ul>
+        <ul style={{ listStyle: 'none', padding: 0 }}>
           {tickets.map((t) => (
-            <li key={t._id || t.id}>
-              <strong>{t.name}</strong>: {t.issue} ({t.priority})
+            <li
+              key={t._id || t.id}
+              style={{
+                marginBottom: '1rem',
+                padding: '1rem',
+                border: '1px solid #ccc',
+                borderRadius: '8px',
+                backgroundColor: '#f9f9f9'
+              }}
+            >
+              <p><strong>Name:</strong> {t.name}</p>
+              <p><strong>Issue:</strong> {t.issue}</p>
+              <p><strong>Priority:</strong> {t.priority}</p>
+              <p><strong>Category:</strong> {t.category} ({Math.round(t.confidence * 100)}%)</p>
+
+              {t.sentimentLabel && (
+                <p>
+                  <strong>Sentiment:</strong>{' '}
+                  <span
+                    style={{
+                      padding: '2px 8px',
+                      borderRadius: '12px',
+                      backgroundColor:
+                        t.sentimentLabel === 'positive'
+                          ? '#d4edda'
+                          : t.sentimentLabel === 'negative'
+                            ? '#f8d7da'
+                            : '#fff3cd',
+                      color:
+                        t.sentimentLabel === 'positive'
+                          ? '#155724'
+                          : t.sentimentLabel === 'negative'
+                            ? '#721c24'
+                            : '#856404',
+                      fontWeight: 'bold'
+                    }}
+                  >
+                    {t.sentimentLabel.toUpperCase()}
+                  </span>{' '}
+                  ({t.sentimentScore?.toFixed(2)})
+                </p>
+
+              )}
+              <p><strong>Status:</strong> {t.status || 'open'}</p>
+              <p><strong>Assigned To:</strong> {t.assignedTo || 'Unassigned'}</p>
+
+              <input
+                placeholder="Assign to agent..."
+                value={t.assignedTo || ''}
+                onChange={e => handleUpdate(t._id || t.id, { assignedTo: e.target.value })}
+              />
+
+              <select
+                value={t.status || 'open'}
+                onChange={e => handleUpdate(t._id || t.id, { status: e.target.value })}
+              >
+                <option value="open">Open</option>
+                <option value="in_progress">In Progress</option>
+                <option value="resolved">Resolved</option>
+              </select>
+
             </li>
           ))}
         </ul>
+
       )}
       <CategoryChart />
     </div>

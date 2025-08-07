@@ -11,6 +11,10 @@ const useTicketStore = create((set) => ({
     setLoading: (loading) => set({ loading }),
     setError: (error) => set({ error }),
     setSocketStatus: (status) => set({ socketStatus: status }),
+    updateTicket: (updated) => set((state) => ({
+        tickets: state.tickets.map(t => (t._id === updated._id ? updated : t))
+    })),
+
 }));
 
 export default useTicketStore;

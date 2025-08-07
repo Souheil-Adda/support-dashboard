@@ -65,10 +65,18 @@ const ticketSchema = new mongoose.Schema({
     confidence: Number,
     sentimentLabel: String,
     sentimentScore: Number,
+    assignedTo: { type: String, default: '' },  // NEW
+
+    status: { type: String, enum: ['open', 'in_progress', 'resolved'], default: 'open' },  // NEW
     createdAt: {          // Add this
         type: Date,
         default: Date.now
-    }
+    },
+    updatedAt: {
+        type: Date,
+        default: Date.now
+    }  // NEW
+
 });
 const Ticket = mongoose.model('Ticket', ticketSchema);
 
@@ -127,6 +135,26 @@ app.post('/api/tickets', async (req, res) => {
         });
     }
 });
+
+app.patch('/api/tickets/:id', async (req, res) => {
+    try {
+        const { assignedTo, status } = req.body;
+        const update = {};
+        if (assignedTo !== undefined) update.assignedTo = assignedTo;
+        if (status !== undefined) update.status = status;
+        update.updatedAt = new Date();
+
+        const ticket = await Ticket.findByIdAndUpdate(req.params.id, update, { new: true });
+        if (!ticket) return res.status(404).json({ error: 'Ticket not found' });
+
+        io.emit('ticketUpdated', ticket);
+        res.json(ticket);
+    } catch (err) {
+        console.error('Failed to update ticket:', err);
+        res.status(500).json({ error: 'Failed to update ticket' });
+    }
+});
+
 // Start server
 httpServer.listen(PORT, () => {
     console.log(`Server running on http://localhost:${PORT}`);
